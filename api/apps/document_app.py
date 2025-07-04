@@ -67,6 +67,16 @@ def upload():
     e, kb = KnowledgebaseService.get_by_id(kb_id)
     if not e:
         raise LookupError("Can't find this knowledgebase!")
+    
+    # Check if user has permission to upload documents to this knowledge base
+    # Only the creator (owner) can upload documents to team knowledge bases
+    if not KnowledgebaseService.accessible4deletion(kb_id, current_user.id):
+        return get_json_result(
+            data=False, 
+            message="Only the owner can upload documents to team knowledge bases.", 
+            code=settings.RetCode.AUTHENTICATION_ERROR
+        )
+    
     err, files = FileService.upload_document(kb, file_objs, current_user.id)
 
     if err:
@@ -160,6 +170,15 @@ def create():
         e, kb = KnowledgebaseService.get_by_id(kb_id)
         if not e:
             return get_data_error_result(message="Can't find this knowledgebase!")
+
+        # Check if user has permission to create documents in this knowledge base
+        # Only the creator (owner) can create documents in team knowledge bases
+        if not KnowledgebaseService.accessible4deletion(kb_id, current_user.id):
+            return get_json_result(
+                data=False, 
+                message="Only the owner can create documents in team knowledge bases.", 
+                code=settings.RetCode.AUTHENTICATION_ERROR
+            )
 
         if DocumentService.query(name=req["name"], kb_id=kb_id):
             return get_data_error_result(message="Duplicated document name in the same knowledgebase.")
@@ -414,6 +433,16 @@ def rename():
     req = request.json
     if not DocumentService.accessible(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
+    
+    # Check if user has permission to modify documents in this knowledge base
+    # Only the creator (owner) can modify documents in team knowledge bases
+    if not DocumentService.accessible4deletion(req["doc_id"], current_user.id):
+        return get_json_result(
+            data=False, 
+            message="Only the owner can modify documents in team knowledge bases.", 
+            code=settings.RetCode.AUTHENTICATION_ERROR
+        )
+    
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:
@@ -470,6 +499,16 @@ def change_parser():
 
     if not DocumentService.accessible(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
+    
+    # Check if user has permission to modify documents in this knowledge base
+    # Only the creator (owner) can modify documents in team knowledge bases
+    if not DocumentService.accessible4deletion(req["doc_id"], current_user.id):
+        return get_json_result(
+            data=False, 
+            message="Only the owner can modify documents in team knowledge bases.", 
+            code=settings.RetCode.AUTHENTICATION_ERROR
+        )
+    
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:

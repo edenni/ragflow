@@ -349,6 +349,11 @@ class DocumentService(CommonService):
     @classmethod
     @DB.connection_context()
     def accessible4deletion(cls, doc_id, user_id):
+        """Check if a document can be deleted by a specific user.
+        
+        Only the creator (owner) of the knowledge base can delete documents.
+        Normal members can only view and use team knowledge bases, but cannot modify them.
+        """
         docs = cls.model.select(cls.model.id
         ).join(
             Knowledgebase, on=(
@@ -359,7 +364,8 @@ class DocumentService(CommonService):
         ).where(
             cls.model.id == doc_id,
             UserTenant.status == StatusEnum.VALID.value,
-            ((UserTenant.role == UserTenantRole.NORMAL) | (UserTenant.role == UserTenantRole.OWNER))
+            # Only owners can delete documents, normal members cannot modify team knowledge bases
+            (UserTenant.role == UserTenantRole.OWNER)
         ).paginate(0, 1)
         docs = docs.dicts()
         if not docs:
